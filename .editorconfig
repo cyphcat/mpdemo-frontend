@@ -1,0 +1,6 @@
+root = true
+
+[*.{ts,tsx,json,css}]
+end_of_line = lf
+insert_final_newline = true
+indent_size = 2
