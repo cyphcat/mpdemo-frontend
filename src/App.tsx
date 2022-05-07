@@ -2,6 +2,7 @@ import React from "react";
 import {Link, Outlet} from "react-router-dom";
 import {useEthereum} from "./wallet/EthereumContext";
 import {shortWalletAddress} from "./wallet/util";
+import Button from "./Button";
 
 export default function App() {
   const eth = useEthereum();
@@ -22,17 +23,12 @@ export default function App() {
       <h1>Marketplace</h1>
       <div className="">
         {eth.wallet ? (
-          <button
-            className="px-4 py-2 rounded-full border-2 border-green-500 text-white font-bold hover:bg-green-500 active:bg-green-600 active:border-green-600"
-            onClick={disconnect}>
+          <div>
             Connected: {shortWalletAddress(eth.wallet.address)}
-          </button>
+            <Button onClick={disconnect}>Disconnect</Button>
+          </div>
         ) : (
-          <button
-            className="px-4 py-2 rounded-full bg-green-500 border-2 border-green-500 text-white font-bold hover:bg-green-400 hover:border-green-400 active:bg-green-600 active:bg-green-600 active:border-green-600"
-            onClick={connect}>
-            Connect
-          </button>
+          <Button onClick={connect}>Connect</Button>
         )}
       </div>
       <Link to="/">Home</Link>

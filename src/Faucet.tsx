@@ -2,6 +2,7 @@ import {useContracts} from "./contracts/ContractsContext";
 import {useEthereum} from "./wallet/EthereumContext";
 import {formatUnits, parseUnits} from "ethers/lib/utils";
 import {useCallback, useEffect, useState} from "react";
+import Button from "./Button";
 
 export default function Faucet() {
   const eth = useEthereum();
@@ -38,7 +39,7 @@ export default function Faucet() {
         TheCoin.off(filter, listener);
       };
     }
-  }, [eth.wallet, TheCoin])
+  }, [eth.wallet, TheCoin]);
 
   // incoming transfer events
   useEffect(() => {
@@ -52,7 +53,7 @@ export default function Faucet() {
         TheCoin.off(filter, listener);
       };
     }
-  }, [eth.wallet, TheCoin])
+  }, [eth.wallet, TheCoin]);
 
   useEffect(() => {
     const {wallet} = eth;
@@ -60,7 +61,7 @@ export default function Faucet() {
       TheCoin.connect(wallet.signer).balanceOf(wallet.address)
         .then(it => setCoinBalance(formatUnits(it)));
     }
-  }, [eth.wallet, TheCoin])
+  }, [eth.wallet, TheCoin]);
 
   return (
     <div>
@@ -72,11 +73,7 @@ export default function Faucet() {
               <span>Waiting...</span>
             ) : (
               <div>
-                <button
-                  className="px-4 py-2 rounded-full bg-white text-black hover:bg-gray-100 active:bg-gray-200"
-                  onClick={mint}>
-                  Get COIN
-                </button>
+                <Button onClick={mint}>Get COIN</Button>
               </div>
             )}
           </div>
