@@ -27,7 +27,7 @@ export function EthereumProvider(props: { children: React.ReactNode }) {
 
   const onAccountsChanged = useCallback((accounts: string[]) => {
     if (accounts.length >= 1) {
-      const address = accounts[0];
+      const address = accounts[0].toLowerCase();
       const signer = provider!.getSigner(address);
       if (signer) {
         setWallet({signer, address});

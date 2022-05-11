@@ -34,6 +34,8 @@ export default function App() {
       <Link to="/">Home</Link>
       <Link to="/faucet">Faucet</Link>
       <Link to="/mint">Mint</Link>
+      <Link to="/mywallet">My Wallet</Link>
+      <Link to="/marketplace">Marketplace</Link>
       <Outlet />
     </div>
   );

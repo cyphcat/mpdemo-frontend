@@ -1,6 +1,6 @@
 interface Props {
   children: string;
-  onClick: () => any;
+  onClick?: () => any;
 }
 
 export default function Button(props: Props) {

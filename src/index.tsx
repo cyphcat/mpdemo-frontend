@@ -8,6 +8,10 @@ import Faucet from "./Faucet";
 import {EthereumProvider} from "./wallet/EthereumContext";
 import {ContractsProvider} from "./contracts/ContractsContext";
 import Mint from "./Mint";
+import MyWallet from "./MyWallet";
+import Sell from "./Sell";
+import Buy from "./Buy";
+import Marketplace from "./Marketplace";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -22,6 +26,10 @@ root.render(
               <Route index element={<Home />} />
               <Route path="faucet" element={<Faucet />} />
               <Route path="mint" element={<Mint />} />
+              <Route path="mywallet" element={<MyWallet />} />
+              <Route path="sell/:token/:tokenId" element={<Sell />} />
+              <Route path="marketplace" element={<Marketplace />} />
+              <Route path="buy/:hash" element={<Buy />} />
             </Route>
           </Routes>
         </BrowserRouter>
