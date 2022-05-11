@@ -1,8 +1,8 @@
 import {useEffect, useState} from "react";
-import {OrderListing} from "./wyvern/OrderListing";
-import Button from "./Button";
+import {OrderListing} from "../wyvern/OrderListing";
+import Button from "../components/Button";
 import {Link} from "react-router-dom";
-import {api} from "./api/api";
+import {api} from "../api/api";
 
 export default function Marketplace() {
   const [listings, setListings] = useState<OrderListing[]>([]);

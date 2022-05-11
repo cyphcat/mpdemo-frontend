@@ -3,15 +3,15 @@ import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import {BrowserRouter, Route, Routes} from "react-router-dom";
-import Home from "./Home";
-import Faucet from "./Faucet";
+import Home from "./pages/Home";
+import Faucet from "./pages/Faucet";
 import {EthereumProvider} from "./wallet/EthereumContext";
 import {ContractsProvider} from "./contracts/ContractsContext";
-import Mint from "./Mint";
-import MyWallet from "./MyWallet";
-import Sell from "./Sell";
-import Buy from "./Buy";
-import Marketplace from "./Marketplace";
+import Mint from "./pages/Mint";
+import MyWallet from "./pages/MyWallet";
+import Sell from "./pages/Sell";
+import Buy from "./pages/Buy";
+import Marketplace from "./pages/Marketplace";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

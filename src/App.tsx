@@ -2,7 +2,7 @@ import React from "react";
 import {Link, Outlet} from "react-router-dom";
 import {useEthereum} from "./wallet/EthereumContext";
 import {shortWalletAddress} from "./wallet/util";
-import Button from "./Button";
+import Button from "./components/Button";
 
 export default function App() {
   const eth = useEthereum();

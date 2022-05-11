@@ -1,8 +1,8 @@
-import {useContracts} from "./contracts/ContractsContext";
-import {useEthereum} from "./wallet/EthereumContext";
+import {useContracts} from "../contracts/ContractsContext";
+import {useEthereum} from "../wallet/EthereumContext";
 import {formatUnits, parseUnits} from "ethers/lib/utils";
 import {useCallback, useEffect, useState} from "react";
-import Button from "./Button";
+import Button from "../components/Button";
 
 export default function Faucet() {
   const eth = useEthereum();

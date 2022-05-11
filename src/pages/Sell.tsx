@@ -1,14 +1,14 @@
 import {useParams} from "react-router-dom";
 import {useCallback, useEffect} from "react";
-import {useContracts} from "./contracts/ContractsContext";
-import {useEthereum} from "./wallet/EthereumContext";
-import {currentTime, encodeOrderTypedData, generateSalt, hashOrderArgs} from "./wyvern/wyvern";
-import {Order} from "./wyvern/Order";
+import {useContracts} from "../contracts/ContractsContext";
+import {useEthereum} from "../wallet/EthereumContext";
+import {currentTime, encodeOrderTypedData, generateSalt, hashOrderArgs} from "../wyvern/wyvern";
+import {Order} from "../wyvern/Order";
 import {Interface, parseUnits} from "ethers/lib/utils";
-import Button from "./Button";
+import Button from "../components/Button";
 import {ethers} from "ethers";
-import {OrderListing} from "./wyvern/OrderListing";
-import {api} from "./api/api";
+import {OrderListing} from "../wyvern/OrderListing";
+import {api} from "../api/api";
 
 const abi = Interface.getAbiCoder();
 

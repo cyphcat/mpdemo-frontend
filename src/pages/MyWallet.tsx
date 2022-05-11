@@ -1,7 +1,7 @@
 import {useEffect, useState} from "react";
-import {useEthereum} from "./wallet/EthereumContext";
-import {useContracts} from "./contracts/ContractsContext";
-import Button from "./Button";
+import {useEthereum} from "../wallet/EthereumContext";
+import {useContracts} from "../contracts/ContractsContext";
+import Button from "../components/Button";
 import {Link} from "react-router-dom";
 
 export default function MyWallet() {
