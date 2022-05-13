@@ -1,8 +1,10 @@
 import {useContracts} from "../contracts/ContractsContext";
 import {useEthereum} from "../wallet/EthereumContext";
 import {formatUnits, parseUnits} from "ethers/lib/utils";
-import {useCallback, useEffect, useState} from "react";
+import {ChangeEvent, useCallback, useEffect, useMemo, useState} from "react";
 import Button from "../components/Button";
+import Loading from "../components/Loading";
+import ConnectWalletMessage from "../components/ConnectWalletMessage";
 
 export default function Faucet() {
   const eth = useEthereum();
@@ -11,12 +13,27 @@ export default function Faucet() {
   const [busy, setBusy] = useState(false);
   const [coinBalance, setCoinBalance] = useState("");
 
+  const [amountInput, setAmountInput] = useState("100");
+
+  const updateAmount = useCallback(() => {
+    setAmountInput(v => {
+      const amount = Number.parseFloat(v);
+      return Number.isFinite(amount) && amount >= 0 ? String(amount) : "0";
+    });
+  }, []);
+
+  const amount = useMemo(() => {
+    const v = Number.parseFloat(amountInput);
+    return (Number.isFinite(v) && v >= 0) ? v : 0;
+  }, [amountInput]);
+
   const mint = useCallback(() => {
-    if (eth.wallet) {
+    if (eth.wallet && amount > 0) {
       setBusy(true);
-      TheCoin.connect(eth.wallet.signer).mint(parseUnits("100.0"))
+      TheCoin.connect(eth.wallet.signer).mint(parseUnits(amount.toString()))
         .then(() => {
           console.log("ok");
+          setAmountInput("100");
         })
         .catch(e => {
           console.warn(e);
@@ -25,7 +42,7 @@ export default function Faucet() {
           setBusy(false);
         });
     }
-  }, [eth.wallet, TheCoin]);
+  }, [eth.wallet, TheCoin, amount]);
 
   // outgoing transfer events
   useEffect(() => {
@@ -64,27 +81,37 @@ export default function Faucet() {
   }, [eth.wallet, TheCoin]);
 
   return (
-    <div>
-      <h1>COIN Faucet</h1>
+    <div className="mx-auto text-center">
+
+      <div className="my-16">
+        <h1 className="text-6xl text-blue-500">the faucet</h1>
+        <h2 className="text-3xl">unlimited supply of COINs</h2>
+      </div>
+
       {eth.wallet ? (
         <div>
           <div>
             {busy ? (
-              <span>Waiting...</span>
+              <Loading />
             ) : (
               <div>
-                <Button onClick={mint}>Get COIN</Button>
+                <div>
+                  <input type="text" className="m-1 p-2 rounded-md bg-white/10 text-center"
+                         value={amountInput} onChange={e => setAmountInput(e.target.value)}
+                         onBlur={updateAmount} />
+                </div>
+                <Button onClick={mint} color="primary">get {amount} COINs</Button>
               </div>
             )}
           </div>
-          <div>
-            <span>Current balance: {coinBalance} COIN</span>
+
+          <div className="mt-8">
+            <div className="opacity-60">current balance</div>
+            <div className="text-2xl">{coinBalance} COIN</div>
           </div>
         </div>
       ) : (
-        <div>
-          Please connect your wallet.
-        </div>
+        <ConnectWalletMessage />
       )}
     </div>
   );

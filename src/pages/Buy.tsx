@@ -10,53 +10,110 @@ import {atomicMatchArgs, currentTime, encodeOrderTypedData, generateSalt} from "
 import {OrderListing} from "../wyvern/OrderListing";
 import {Call, HowToCall} from "../wyvern/Call";
 import {api} from "../api/api";
+import ConnectWalletMessage from "../components/ConnectWalletMessage";
+import Loading from "../components/Loading";
 
 const abi = Interface.getAbiCoder();
 
 export default function Buy() {
   const {hash} = useParams();
 
-  const [listing, setListing] = useState<OrderListing>();
-
   const {provider, wallet} = useEthereum();
   const {TheMarketplace, TheMarketplaceRegistry, StaticMarket, IERC20, IERC721} = useContracts();
 
+  const [listing, setListing] = useState<OrderListing>();
+
+  const [proxy, setProxy] = useState<"registering" | string | null>(null);
+  const [approved, setApproved] = useState<"approving" | boolean>(false);
+  const [matched, setMatched] = useState(false);
+
+  const [loading, setLoading] = useState<"registerProxy" | "approve" | "signAndMatch" | false>(false);
+
   useEffect(() => {
-    (async () => {
-      if (hash) {
-        const listing = await api.fetchOrder(hash);
-        setListing(listing);
-      }
-    })().catch(e => {
-      console.warn(e);
-    });
-  }, [hash]);
-
-  const registerProxy = useCallback(() => {
-    if (wallet) {
-      TheMarketplaceRegistry.connect(wallet.signer).registerProxy()
-        .catch(e => {
-          console.warn(e);
-        });
-    }
-  }, [wallet, TheMarketplaceRegistry]);
-
-  const approve = useCallback(() => {
-    if (wallet && listing) {
+    if (wallet && hash) {
       (async () => {
-        const proxy = await TheMarketplaceRegistry.connect(wallet.signer).proxies(wallet.address);
-        if (proxy === ethers.constants.AddressZero) {
-          throw new Error("proxy not registered");
-        }
-        const erc20 = IERC20(listing.paymentToken);
-        const balance = await erc20.connect(wallet.signer).balanceOf(wallet.address);
 
-        await erc20.connect(wallet.signer).approve(proxy, balance);
+        const _listing = await api.fetchOrder(hash);
+        setListing(_listing);
+
+        // check proxy
+        const _proxy = await TheMarketplaceRegistry.connect(wallet.signer).proxies(wallet.address);
+        setProxy(_proxy !== ethers.constants.AddressZero ? _proxy : null);
+
+        // check approval
+        if (_proxy !== ethers.constants.AddressZero && _listing) {
+          const price = BigNumber.from(_listing.price);
+          const allowance = await IERC20(_listing.paymentToken).connect(wallet.signer).allowance(wallet.address, _proxy);
+          setApproved(allowance.gte(price));
+        }
+
       })().catch(e => {
         console.warn(e);
       });
     }
+  }, [wallet, hash, IERC721, TheMarketplaceRegistry]);
+
+  const registerProxy = useCallback(() => {
+    if (wallet) {
+      setLoading("registerProxy");
+      (async () => {
+        await TheMarketplaceRegistry.connect(wallet.signer).registerProxy();
+        setProxy("registering");
+      })().catch(e => {
+        console.warn(e);
+      }).finally(() => {
+        setLoading(false);
+      });
+    }
+  }, [wallet, TheMarketplaceRegistry]);
+
+  useEffect(() => {
+    if (wallet && listing && proxy === "registering") {
+      const handle = setInterval(async () => {
+        const p = await TheMarketplaceRegistry.connect(wallet.signer).proxies(wallet.address);
+        if (p !== ethers.constants.AddressZero) {
+          setProxy(p);
+        }
+      }, 4000);
+      return () => {
+        clearInterval(handle);
+      };
+    }
+  }, [wallet, listing, proxy, TheMarketplaceRegistry]);
+
+  const approve = useCallback(() => {
+    if (wallet && listing) {
+      setLoading("approve");
+      (async () => {
+        const proxy = await TheMarketplaceRegistry.connect(wallet.signer).proxies(wallet.address);
+        if (proxy === ethers.constants.AddressZero) {
+          throw new Error("proxy not found");
+        }
+        const erc20 = IERC20(listing.paymentToken);
+        const price = BigNumber.from(listing.price);
+        await erc20.connect(wallet.signer).approve(proxy, price);
+        setApproved("approving");
+      })().catch(e => {
+        console.warn(e);
+      }).finally(() => {
+        setLoading(false);
+      });
+    }
   }, [wallet, IERC20, TheMarketplaceRegistry, listing]);
+
+  useEffect(() => {
+    if (wallet && listing && proxy && proxy !== "registering") {
+      const erc20 = IERC20(listing.paymentToken);
+      const filter = erc20.filters["Approval(address,address,uint256)"](wallet.address, proxy);
+      const price = BigNumber.from(listing.price);
+      const listener = () => erc20.connect(wallet.signer).allowance(wallet.address, proxy)
+        .then(allowance => setApproved(allowance.gte(price)));
+      erc20.connect(wallet.signer).on(filter, listener);
+      return () => {
+        erc20.off(filter, listener);
+      };
+    }
+  }, [wallet, listing, proxy, IERC20]);
 
   const signAndMatch = useCallback(() => {
     if (provider && wallet && listing) {
@@ -108,6 +165,7 @@ export default function Buy() {
       };
       const metadata = formatBytes32String("");
 
+      setLoading("signAndMatch");
       (async () => {
         const sig = await provider.send("eth_signTypedData_v4", [wallet.address, buyOrderData]);
 
@@ -118,20 +176,74 @@ export default function Buy() {
           atomicMatchArgs(sellOrder, sellCall, sellSig, buyOrder, buyCall, buySig, metadata));
 
         await api.fillOrder(listing.hash);
+        setMatched(true);
 
       })().catch(e => {
         console.warn(e);
+      }).finally(() => {
+        setLoading(false);
       });
     }
   }, [provider, wallet, listing, TheMarketplaceRegistry, TheMarketplace, StaticMarket, IERC20, IERC721]);
 
   return (
-    <div>
-      <h1>Buy</h1>
+    <div className="mx-auto text-center">
 
-      <Button onClick={registerProxy}>Register Proxy</Button>
-      <Button onClick={approve}>Approve</Button>
-      <Button onClick={signAndMatch}>Buy</Button>
+      {wallet ? (
+        <>
+          <div className="my-16">
+            <h1 className="text-6xl">buy</h1>
+          </div>
+
+          {listing ? (
+            <>
+              <div>
+                <img alt="" className="inline-block bg-white/10 p-2 rounded-md"
+                     src={process.env.PUBLIC_URL + "/images/a0.png"} />
+              </div>
+              <h2 className="font-bold my-4">The NFT #{listing.tokenId}</h2>
+
+              <Button disabled={!!loading || proxy === "registering" || proxy != null}
+                      onClick={registerProxy}>
+                {
+                  loading === "registerProxy" ? (<i className="animate-spin fa fa-circle-notch" />)
+                    : proxy === "registering" ? (<><i className="animate-spin fa fa-circle-notch" /> Registering</>)
+                      : proxy ? "Registered"
+                        : "Register Proxy"
+                }
+              </Button>
+
+              <i className="fa fa-arrow-right mx-4"></i>
+              <Button
+                disabled={!!loading || approved === "approving" || approved || proxy === "registering" || proxy == null}
+                onClick={approve}>
+                {
+                  loading === "approve" ? (<i className="animate-spin fa fa-circle-notch" />)
+                    : approved === "approving" ? (<><i className="animate-spin fa fa-circle-notch" /> Approving</>)
+                      : approved ? "Approved"
+                        : "Approve"
+                }
+              </Button>
+
+              <i className="fa fa-arrow-right mx-4"></i>
+              <Button
+                disabled={!!loading || proxy === "registering" || proxy == null || approved === "approving" || !approved || matched}
+                onClick={signAndMatch}
+                color="primary">
+                {
+                  loading === "signAndMatch" ? (<i className="animate-spin fa fa-circle-notch" />)
+                    : matched ? "Bought"
+                      : "Buy"
+                }
+              </Button>
+            </>
+          ) : (
+            <Loading />
+          )}
+        </>
+      ) : (
+        <ConnectWalletMessage />
+      )}
     </div>
   );
 }
