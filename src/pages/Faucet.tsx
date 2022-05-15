@@ -5,6 +5,8 @@ import {ChangeEvent, useCallback, useEffect, useMemo, useState} from "react";
 import Button from "../components/Button";
 import Loading from "../components/Loading";
 import ConnectWalletMessage from "../components/ConnectWalletMessage";
+import {toast} from "react-toastify";
+import {unlessCancelledByUser} from "../wallet/util";
 
 export default function Faucet() {
   const eth = useEthereum();
@@ -32,11 +34,11 @@ export default function Faucet() {
       setBusy(true);
       TheCoin.connect(eth.wallet.signer).mint(parseUnits(amount.toString()))
         .then(() => {
-          console.log("ok");
           setAmountInput("100");
+          toast.success("minting in progress");
         })
         .catch(e => {
-          console.warn(e);
+          unlessCancelledByUser(e, () => toast.error("failed to mint"));
         })
         .finally(() => {
           setBusy(false);

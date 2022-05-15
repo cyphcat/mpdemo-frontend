@@ -12,6 +12,8 @@ import {Call, HowToCall} from "../wyvern/Call";
 import {api} from "../api/api";
 import ConnectWalletMessage from "../components/ConnectWalletMessage";
 import Loading from "../components/Loading";
+import {toast} from "react-toastify";
+import {unlessCancelledByUser} from "../wallet/util";
 
 const abi = Interface.getAbiCoder();
 
@@ -48,6 +50,7 @@ export default function Buy() {
         }
 
       })().catch(e => {
+        toast.warn("something went wrong");
         console.warn(e);
       });
     }
@@ -59,8 +62,9 @@ export default function Buy() {
       (async () => {
         await TheMarketplaceRegistry.connect(wallet.signer).registerProxy();
         setProxy("registering");
+        toast.success("registering proxy")
       })().catch(e => {
-        console.warn(e);
+        unlessCancelledByUser(e, () => toast.error("failed to register proxy"));
       }).finally(() => {
         setLoading(false);
       });
@@ -87,14 +91,16 @@ export default function Buy() {
       (async () => {
         const proxy = await TheMarketplaceRegistry.connect(wallet.signer).proxies(wallet.address);
         if (proxy === ethers.constants.AddressZero) {
-          throw new Error("proxy not found");
+          toast.error("proxy not registered");
+          return;
         }
         const erc20 = IERC20(listing.paymentToken);
         const price = BigNumber.from(listing.price);
         await erc20.connect(wallet.signer).approve(proxy, price);
         setApproved("approving");
+        toast.success("waiting for approval");
       })().catch(e => {
-        console.warn(e);
+        unlessCancelledByUser(e, () => toast.error("failed to approve"));
       }).finally(() => {
         setLoading(false);
       });
@@ -131,7 +137,6 @@ export default function Buy() {
         expirationTime: Number.parseInt(order.expirationTime),
         salt: order.salt,
       };
-      console.log(order);
 
       const now = currentTime();
       const price = BigNumber.from(listing.price);
@@ -178,8 +183,10 @@ export default function Buy() {
         await api.fillOrder(listing.hash);
         setMatched(true);
 
+        toast.success("buy order placed!");
+
       })().catch(e => {
-        console.warn(e);
+        unlessCancelledByUser(e, () => toast.error("failed to buy token"));
       }).finally(() => {
         setLoading(false);
       });

@@ -1,17 +1,25 @@
 import React from "react";
-import {Link, Outlet} from "react-router-dom";
+import {Outlet} from "react-router-dom";
 import {useEthereum} from "./wallet/EthereumContext";
-import {shortWalletAddress} from "./wallet/util";
+import {shortWalletAddress, unlessCancelledByUser} from "./wallet/util";
 import Button from "./components/Button";
 import NavButton from "./components/NavButton";
+import {toast, ToastContainer} from "react-toastify";
 
 export default function App() {
   const eth = useEthereum();
 
   const connect = () => {
     eth.connect()
-      .catch(() => {
-        console.warn("unable to connect to wallet");
+      .then((ok) => {
+        if (ok) {
+          toast.success("wallet connected!");
+        } else {
+          toast.error("can't connect wallet");
+        }
+      })
+      .catch(e => {
+        unlessCancelledByUser(e, () => toast.error("can't connect wallet"));
       });
   };
 
@@ -49,6 +57,12 @@ export default function App() {
 
       <Outlet />
 
+      <ToastContainer position="bottom-right"
+                      theme="dark"
+                      bodyClassName="block font-bold text-sm"
+                      hideProgressBar
+                      closeButton={false}
+                      closeOnClick />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import MyWallet from "./pages/MyWallet";
 import Sell from "./pages/Sell";
 import Buy from "./pages/Buy";
 import Marketplace from "./pages/Marketplace";
+import "react-toastify/dist/ReactToastify.css";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

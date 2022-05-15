@@ -26,9 +26,21 @@ export function useContracts() {
   return useContext(ContractsContext);
 }
 
+const CHAIN_ID = process.env.REACT_APP_CHAIN_ID || "31337";
+
 export function ContractsProvider(props: { children: React.ReactNode }) {
 
-  const addresses = require("./deployments/31337.json");
+  const addresses = (() => {
+    switch (CHAIN_ID) {
+      case "ropsten":
+      case "3":
+        return require("./deployments/3.json");
+      case "localhost":
+      case "31337":
+      default:
+        return require("./deployments/31337.json");
+    }
+  })();
 
   const contracts = {
     TheCoin: new ethers.Contract(addresses.TheCoin, require("./artifacts/TheCoin.json").abi) as TheCoin,

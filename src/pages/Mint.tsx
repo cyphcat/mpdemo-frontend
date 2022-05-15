@@ -4,6 +4,8 @@ import {useCallback, useEffect, useMemo, useState} from "react";
 import Button from "../components/Button";
 import Loading from "../components/Loading";
 import ConnectWalletMessage from "../components/ConnectWalletMessage";
+import {toast} from "react-toastify";
+import {unlessCancelledByUser} from "../wallet/util";
 
 export default function Mint() {
   const {wallet} = useEthereum();
@@ -31,10 +33,11 @@ export default function Mint() {
       setBusy(true);
       TheNFT.connect(wallet.signer).mint(quantity)
         .then(() => {
-          console.log("ok");
+          setQuantityInput("1");
+          toast.success("minting in progress");
         })
         .catch(e => {
-          console.warn(e);
+          unlessCancelledByUser(e, () => toast.error("failed to mint"));
         })
         .finally(() => {
           setBusy(false);

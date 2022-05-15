@@ -38,16 +38,18 @@ export function EthereumProvider(props: { children: React.ReactNode }) {
     return false;
   }, [provider]);
 
-  const connect = useCallback(() => {
-    return provider?.send("eth_requestAccounts", [])
+  const connect = useCallback((): Promise<boolean> => {
+    if (!provider) {
+      return Promise.reject("no provider");
+    }
+    return provider.send("eth_requestAccounts", [])
       .then((accounts: string[]) => {
         return onAccountsChanged(accounts);
       })
       .catch(e => {
-        console.warn(e);
         setWallet(undefined);
-        return false;
-      }) ?? Promise.resolve(false);
+        return Promise.reject(e);
+      });
   }, [provider, onAccountsChanged]);
 
   const disconnect = useCallback(() => {

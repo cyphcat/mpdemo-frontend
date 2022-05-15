@@ -10,6 +10,8 @@ import {ethers} from "ethers";
 import {OrderListing} from "../wyvern/OrderListing";
 import {api} from "../api/api";
 import ConnectWalletMessage from "../components/ConnectWalletMessage";
+import {toast} from "react-toastify";
+import {unlessCancelledByUser} from "../wallet/util";
 
 const abi = Interface.getAbiCoder();
 
@@ -42,6 +44,7 @@ export default function Sell() {
         // todo: check listed?
 
       })().catch(e => {
+        toast.warn("something went wrong");
         console.warn(e);
       });
     }
@@ -53,8 +56,9 @@ export default function Sell() {
       (async () => {
         await TheMarketplaceRegistry.connect(wallet.signer).registerProxy();
         setProxy("registering");
+        toast.success("registering proxy")
       })().catch(e => {
-        console.warn(e);
+        unlessCancelledByUser(e, () => toast.error("failed to register proxy"));
       }).finally(() => {
         setLoading(false);
       });
@@ -81,12 +85,14 @@ export default function Sell() {
       (async () => {
         const proxy = await TheMarketplaceRegistry.connect(wallet.signer).proxies(wallet.address);
         if (proxy === ethers.constants.AddressZero) {
-          throw new Error("proxy not found");
+          toast.error("proxy not registered");
+          return;
         }
         await IERC721(token).connect(wallet.signer).setApprovalForAll(proxy, true);
         setApproved("approving");
+        toast.success("waiting for approval");
       })().catch(e => {
-        console.warn(e);
+        unlessCancelledByUser(e, () => toast.error("failed to approve"));
       }).finally(() => {
         setLoading(false);
       });
@@ -144,8 +150,10 @@ export default function Sell() {
         await api.listOrder(listing);
         setListed(true);
 
+        toast.success("sell order placed!");
+
       })().catch(e => {
-        console.warn(e);
+        unlessCancelledByUser(e, () => toast.error("failed to list token"));
       }).finally(() => {
         setLoading(false);
       });
