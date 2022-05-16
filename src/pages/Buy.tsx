@@ -4,7 +4,7 @@ import {useCallback, useEffect, useState} from "react";
 import {BigNumber, ethers} from "ethers";
 import {useEthereum} from "../wallet/EthereumContext";
 import {useParams} from "react-router-dom";
-import {formatBytes32String, Interface, splitSignature} from "ethers/lib/utils";
+import {formatBytes32String, formatUnits, Interface, splitSignature} from "ethers/lib/utils";
 import {Order} from "../wyvern/Order";
 import {atomicMatchArgs, currentTime, encodeOrderTypedData, generateSalt} from "../wyvern/wyvern";
 import {OrderListing} from "../wyvern/OrderListing";
@@ -14,6 +14,7 @@ import ConnectWalletMessage from "../components/ConnectWalletMessage";
 import Loading from "../components/Loading";
 import {toast} from "react-toastify";
 import {unlessCancelledByUser} from "../wallet/util";
+import TokenImage from "../components/TokenImage";
 
 const abi = Interface.getAbiCoder();
 
@@ -25,7 +26,7 @@ export default function Buy() {
 
   const [listing, setListing] = useState<OrderListing>();
 
-  const [proxy, setProxy] = useState<"registering" | string | null>(null);
+  const [proxy, setProxy] = useState<"registering" | string | null>();
   const [approved, setApproved] = useState<"approving" | boolean>(false);
   const [matched, setMatched] = useState(false);
 
@@ -40,7 +41,6 @@ export default function Buy() {
 
         // check proxy
         const _proxy = await TheMarketplaceRegistry.connect(wallet.signer).proxies(wallet.address);
-        setProxy(_proxy !== ethers.constants.AddressZero ? _proxy : null);
 
         // check approval
         if (_proxy !== ethers.constants.AddressZero && _listing) {
@@ -49,12 +49,14 @@ export default function Buy() {
           setApproved(allowance.gte(price));
         }
 
+        setProxy(_proxy !== ethers.constants.AddressZero ? _proxy : null);
+
       })().catch(e => {
         toast.warn("something went wrong");
         console.warn(e);
       });
     }
-  }, [wallet, hash, IERC721, TheMarketplaceRegistry]);
+  }, [wallet, hash, IERC20, TheMarketplaceRegistry]);
 
   const registerProxy = useCallback(() => {
     if (wallet) {
@@ -62,7 +64,7 @@ export default function Buy() {
       (async () => {
         await TheMarketplaceRegistry.connect(wallet.signer).registerProxy();
         setProxy("registering");
-        toast.success("registering proxy")
+        toast.success("registering proxy");
       })().catch(e => {
         unlessCancelledByUser(e, () => toast.error("failed to register proxy"));
       }).finally(() => {
@@ -149,12 +151,12 @@ export default function Buy() {
           ["address[2]", "uint256[2]"],
           [[listing.paymentToken, listing.token], [listing.tokenId, price]]),
         maximumFill: 1,
-        listingTime: now,
-        expirationTime: now + 7 * 24 * 60 * 60,
+        listingTime: now - (5 * 60), // TODO bug? ropsten's block.timestamp seems to always be earlier than my clock
+        expirationTime: now + (7 * 24 * 60 * 60),
         salt: generateSalt(),
       };
 
-      const buyOrderData = encodeOrderTypedData(buyOrder, 31337, TheMarketplace);
+      const buyOrderData = encodeOrderTypedData(buyOrder, provider.network.chainId, TheMarketplace);
 
       const sellCall: Call = {
         target: listing.token,
@@ -172,6 +174,12 @@ export default function Buy() {
 
       setLoading("signAndMatch");
       (async () => {
+        const balance = await IERC20(listing.paymentToken).connect(wallet.signer).balanceOf(wallet.address);
+        if (balance.lt(listing.price)) {
+          toast.error("not enough COINs");
+          return;
+        }
+
         const sig = await provider.send("eth_signTypedData_v4", [wallet.address, buyOrderData]);
 
         const buySig = splitSignature(sig);
@@ -186,6 +194,7 @@ export default function Buy() {
         toast.success("buy order placed!");
 
       })().catch(e => {
+        console.warn(e);
         unlessCancelledByUser(e, () => toast.error("failed to buy token"));
       }).finally(() => {
         setLoading(false);
@@ -205,44 +214,51 @@ export default function Buy() {
           {listing ? (
             <>
               <div>
-                <img alt="" className="inline-block bg-white/10 p-2 rounded-md"
-                     src={process.env.PUBLIC_URL + "/images/a0.png"} />
+                <TokenImage className="inline-block bg-white/10 p-2 rounded-md"
+                            token={listing.token} tokenId={listing.tokenId} />
               </div>
-              <h2 className="font-bold my-4">The NFT #{listing.tokenId}</h2>
+              <h2 className="font-bold mt-4">The NFT #{listing.tokenId}</h2>
+              <h3 className="mb-4">{formatUnits(listing.price)} COINs</h3>
 
-              <Button disabled={!!loading || proxy === "registering" || proxy != null}
-                      onClick={registerProxy}>
-                {
-                  loading === "registerProxy" ? (<i className="animate-spin fa fa-circle-notch" />)
-                    : proxy === "registering" ? (<><i className="animate-spin fa fa-circle-notch" /> Registering</>)
-                      : proxy ? "Registered"
-                        : "Register Proxy"
-                }
-              </Button>
+              {proxy === undefined ? (
+                <Loading />
+              ) : (
+                <>
+                  <Button disabled={!!loading || proxy === "registering" || proxy != null}
+                          onClick={registerProxy}>
+                    {
+                      loading === "registerProxy" ? (<i className="animate-spin fa fa-circle-notch" />)
+                        : proxy === "registering" ? (<><i className="animate-spin fa fa-circle-notch" /> Registering</>)
+                          : proxy ? "Registered"
+                            : "Register Proxy"
+                    }
+                  </Button>
 
-              <i className="fa fa-arrow-right mx-4"></i>
-              <Button
-                disabled={!!loading || approved === "approving" || approved || proxy === "registering" || proxy == null}
-                onClick={approve}>
-                {
-                  loading === "approve" ? (<i className="animate-spin fa fa-circle-notch" />)
-                    : approved === "approving" ? (<><i className="animate-spin fa fa-circle-notch" /> Approving</>)
-                      : approved ? "Approved"
-                        : "Approve"
-                }
-              </Button>
+                  <i className="fa fa-arrow-right mx-4"></i>
+                  <Button
+                    disabled={!!loading || approved === "approving" || approved || proxy === "registering" || proxy == null}
+                    onClick={approve}>
+                    {
+                      loading === "approve" ? (<i className="animate-spin fa fa-circle-notch" />)
+                        : approved === "approving" ? (<><i className="animate-spin fa fa-circle-notch" /> Approving</>)
+                          : approved ? "Approved"
+                            : "Approve"
+                    }
+                  </Button>
 
-              <i className="fa fa-arrow-right mx-4"></i>
-              <Button
-                disabled={!!loading || proxy === "registering" || proxy == null || approved === "approving" || !approved || matched}
-                onClick={signAndMatch}
-                color="primary">
-                {
-                  loading === "signAndMatch" ? (<i className="animate-spin fa fa-circle-notch" />)
-                    : matched ? "Bought"
-                      : "Buy"
-                }
-              </Button>
+                  <i className="fa fa-arrow-right mx-4"></i>
+                  <Button
+                    disabled={!!loading || proxy === "registering" || proxy == null || approved === "approving" || !approved || matched}
+                    onClick={signAndMatch}
+                    color="primary">
+                    {
+                      loading === "signAndMatch" ? (<i className="animate-spin fa fa-circle-notch" />)
+                        : matched ? "Bought"
+                          : "Buy"
+                    }
+                  </Button>
+                </>
+              )}
             </>
           ) : (
             <Loading />

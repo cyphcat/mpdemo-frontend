@@ -5,6 +5,7 @@ import Button from "../components/Button";
 import {Link} from "react-router-dom";
 import Loading from "../components/Loading";
 import ConnectWalletMessage from "../components/ConnectWalletMessage";
+import TokenImage from "../components/TokenImage";
 
 export default function MyWallet() {
   const {wallet} = useEthereum();
@@ -19,13 +20,17 @@ export default function MyWallet() {
       setBusy(true);
       const ownedTokenIds = new Set<string>();
       const filter = TheNFT.filters["Transfer(address,address,uint256)"](null, wallet.address);
-      TheNFT.connect(wallet.signer).queryFilter(filter, -20) // paginate?
+      TheNFT.connect(wallet.signer).queryFilter(filter)
         .then(async events => {
           for (const event of events) {
             const [, , tokenId] = event.args;
-            const owner = await TheNFT.connect(wallet.signer).ownerOf(tokenId);
-            if (owner.toLowerCase() === wallet.address) {
-              ownedTokenIds.add(tokenId.toString());
+            try {
+              const owner = await TheNFT.connect(wallet.signer).ownerOf(tokenId);
+              if (owner.toLowerCase() === wallet.address) {
+                ownedTokenIds.add(tokenId.toString());
+              }
+            } catch (e: any) {
+              console.warn(e);
             }
           }
           setTokenIds(Array.from(ownedTokenIds));
@@ -56,7 +61,7 @@ export default function MyWallet() {
               {tokenIds.map(tokenId => (
                 <div className="p-4 rounded-md bg-white/5 " key={tokenId}>
                   <div className="flex flex-row justify-center">
-                    <img alt="Image" src={process.env.PUBLIC_URL + "/images/a0.png"} />
+                    <TokenImage token={TheNFT.address} tokenId={tokenId} />
                   </div>
                   <div className="mt-4 flex flex-row items-center text-left">
                     <span className="flex-1 font-bold">The NFT #{tokenId}</span>

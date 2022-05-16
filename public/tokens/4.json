@@ -1,0 +1,12 @@
+{
+  "description": "The NFT",
+  "external_url": "https://cypx-mpdemo.herokuapp.com/",
+  "image": "https://cypx-mpdemo.herokuapp.com/images/4.png",
+  "name": "The NFT",
+  "attributes": [
+    {
+      "trait_type": "Color",
+      "value": "Red"
+    }
+  ]
+}

@@ -39,17 +39,22 @@ export function EthereumProvider(props: { children: React.ReactNode }) {
   }, [provider]);
 
   const connect = useCallback((): Promise<boolean> => {
-    if (!provider) {
-      return Promise.reject("no provider");
-    }
-    return provider.send("eth_requestAccounts", [])
-      .then((accounts: string[]) => {
-        return onAccountsChanged(accounts);
-      })
-      .catch(e => {
-        setWallet(undefined);
-        return Promise.reject(e);
-      });
+    return (async () => {
+      if (!provider) {
+        return false;
+      }
+
+      const chainId = parseInt(process.env.REACT_APP_CHAIN_ID || "31337");
+      await provider.send("wallet_switchEthereumChain", [{chainId: "0x" + chainId.toString(16)}]);
+
+      const accounts = await provider.send("eth_requestAccounts", []);
+      return onAccountsChanged(accounts);
+    })().catch(e => {
+      setWallet(undefined);
+      console.warn(e);
+      return false;
+    });
+
   }, [provider, onAccountsChanged]);
 
   const disconnect = useCallback(() => {
@@ -57,18 +62,28 @@ export function EthereumProvider(props: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const fn = (accounts: string[]) => onAccountsChanged(accounts);
-    provider?.on("accountsChanged", fn);
+    let active = true;
+    const fn = (accounts: string[]) => {
+      if (active) {
+        onAccountsChanged(accounts);
+      }
+    };
+    window.ethereum?.on("accountsChanged", fn);
     return () => {
-      provider?.off("accountsChanged", fn);
+      active = false;
     };
   }, [provider, onAccountsChanged]);
 
   useEffect(() => {
-    const fn = () => window.location.reload();
-    provider?.on("chainChanged", fn);
+    let active = true;
+    const fn = () => {
+      if (active) {
+        window.location.reload();
+      }
+    };
+    window.ethereum?.on("chainChanged", fn);
     return () => {
-      provider?.off("chainChanged", fn);
+      active = false;
     };
   }, [provider]);
 
@@ -76,7 +91,7 @@ export function EthereumProvider(props: { children: React.ReactNode }) {
     detectEthereumProvider()
       .then((ethereum: any) => {
         if (ethereum) {
-          setProvider(new ethers.providers.Web3Provider(ethereum));
+          setProvider(new ethers.providers.Web3Provider(ethereum, "any"));
         }
         return false;
       })

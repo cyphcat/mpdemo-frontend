@@ -1,7 +1,7 @@
 import {OrderListing} from "../wyvern/OrderListing";
 import axios from "axios";
 
-const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8080/api";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:8080/api";
 
 async function fetchOrders(): Promise<OrderListing[]> {
   return axios.get(`${API_BASE_URL}/orders`)

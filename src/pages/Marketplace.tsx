@@ -6,6 +6,8 @@ import {api} from "../api/api";
 import Loading from "../components/Loading";
 import ConnectWalletMessage from "../components/ConnectWalletMessage";
 import {useEthereum} from "../wallet/EthereumContext";
+import TokenImage from "../components/TokenImage";
+import {formatUnits} from "ethers/lib/utils";
 
 export default function Marketplace() {
   const {wallet} = useEthereum();
@@ -44,10 +46,13 @@ export default function Marketplace() {
               {listings.map(it => (
                 <div className="p-4 rounded-md bg-white/5 " key={it.hash}>
                   <div className="flex flex-row justify-center">
-                    <img alt="Image" src={process.env.PUBLIC_URL + "/images/a0.png"} />
+                    <TokenImage token={it.token} tokenId={it.tokenId} />
                   </div>
                   <div className="mt-4 flex flex-row items-center text-left">
-                    <span className="flex-1 font-bold">The NFT #{it.tokenId}</span>
+                    <div className="flex-1">
+                      <div className="font-bold">The NFT #{it.tokenId}</div>
+                      <div>{formatUnits(it.price)} COINs</div>
+                    </div>
                     <Link to={`/buy/${it.hash}`}>
                       <Button>Buy</Button>
                     </Link>

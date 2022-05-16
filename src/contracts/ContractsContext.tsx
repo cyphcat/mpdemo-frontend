@@ -2,6 +2,7 @@ import React, {useContext} from "react";
 import {
   IERC20,
   IERC721,
+  IERC721Metadata,
   StaticMarket,
   TheCoin,
   TheMarketplace,
@@ -18,6 +19,7 @@ export interface IContractsContext {
   StaticMarket: StaticMarket;
   IERC20: (address: string) => IERC20;
   IERC721: (address: string) => IERC721;
+  IERC721Metadata: (address: string) => IERC721Metadata;
 }
 
 const ContractsContext = React.createContext<IContractsContext>(undefined!);
@@ -50,6 +52,7 @@ export function ContractsProvider(props: { children: React.ReactNode }) {
     StaticMarket: new ethers.Contract(addresses.StaticMarket, require("./artifacts/StaticMarket.json").abi) as StaticMarket,
     IERC20: (address: string) => new ethers.Contract(address, require("./artifacts/IERC20.json").abi) as IERC20,
     IERC721: (address: string) => new ethers.Contract(address, require("./artifacts/IERC721.json").abi) as IERC721,
+    IERC721Metadata: (address: string) => new ethers.Contract(address, require("./artifacts/IERC721Metadata.json").abi) as IERC721Metadata,
   };
 
   return (

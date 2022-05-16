@@ -1,5 +1,5 @@
 import React from "react";
-import {Outlet} from "react-router-dom";
+import {Outlet, useNavigate} from "react-router-dom";
 import {useEthereum} from "./wallet/EthereumContext";
 import {shortWalletAddress, unlessCancelledByUser} from "./wallet/util";
 import Button from "./components/Button";
@@ -8,6 +8,7 @@ import {toast, ToastContainer} from "react-toastify";
 
 export default function App() {
   const eth = useEthereum();
+  const navigate = useNavigate();
 
   const connect = () => {
     eth.connect()
@@ -25,6 +26,7 @@ export default function App() {
 
   const disconnect = () => {
     eth.disconnect();
+    navigate("/");
   };
 
   return (

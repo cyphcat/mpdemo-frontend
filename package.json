@@ -24,7 +24,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "build-ropsten": "REACT_APP_CHAIN_ID=3 BUILD_PATH=../mp-heroku/dist/public react-scripts build",
+    "build-ropsten": "REACT_APP_CHAIN_ID=3 REACT_APP_API_BASE_URL=https://cypx-mpdemo.herokuapp.com/api react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
